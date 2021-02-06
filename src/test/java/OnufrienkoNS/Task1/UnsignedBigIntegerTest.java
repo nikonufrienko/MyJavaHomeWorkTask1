@@ -18,8 +18,8 @@ class UnsignedBigIntegerTest {
     @org.junit.jupiter.api.Test
     void intConstructorAndToString() {
         for(int i = 0; i < 100; i++)  {
-            Integer value = Math.abs(new Random().nextInt());
-            assertEquals(value.toString(), new UnsignedBigInteger(value).toString());
+            int value = Math.abs(new Random().nextInt());
+            assertEquals(Integer.toString(value), new UnsignedBigInteger(value).toString());
         }
     }
 
@@ -79,10 +79,15 @@ class UnsignedBigIntegerTest {
             BigInteger b = new BigInteger(value2);
             UnsignedBigInteger uA = new UnsignedBigInteger(value1);
             UnsignedBigInteger uB = new UnsignedBigInteger(value2);
-            if(uB.equals(UnsignedBigInteger.zero))
-                continue;
-            assertEquals(a.divide(b).toString(), uA.divide(uB).toString());
-            assertEquals(a.remainder(b).toString(), uA.getRemainder(uB).toString());
+            if(!uB.equals(UnsignedBigInteger.zero)) {
+                assertEquals(a.divide(b).toString(), uA.divide(uB).toString());
+                assertEquals(a.remainder(b).toString(), uA.getRemainder(uB).toString());
+            } else try {
+                assertEquals(a.divide(b).toString(), uA.divide(uB).toString());
+                assertEquals(a.remainder(b).toString(), uA.getRemainder(uB).toString());
+            } catch (ArithmeticException e) {
+                assertNotEquals("", e.getMessage());
+            }
 
         }
     }
