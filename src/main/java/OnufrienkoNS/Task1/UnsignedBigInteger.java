@@ -1,12 +1,12 @@
 package OnufrienkoNS.Task1;
 
 
-import java.util.LinkedList;
-
+import java.util.ArrayList;
 public class UnsignedBigInteger{
-    private final LinkedList<Character> unsignedCells;
-    public static final UnsignedBigInteger zero = new UnsignedBigInteger(0);
-    public static final UnsignedBigInteger ten = new UnsignedBigInteger(10);
+    private final ArrayList<Character> unsignedCells;
+    public static final UnsignedBigInteger ZERO = new UnsignedBigInteger(0);
+    public static final UnsignedBigInteger TEN = new UnsignedBigInteger(10);
+    public static final UnsignedBigInteger ONE = new UnsignedBigInteger(1);
 
     private byte getBit(long index) {
         char cell = this.readUnsignedCell((int)index / 16);
@@ -16,7 +16,7 @@ public class UnsignedBigInteger{
 
     private void mul2() {
         char oldBitBuffer = 0;
-        char newBitBuffer = 0;
+        char newBitBuffer;
         int currNumberOfCells = unsignedCells.size();
         for (int i = 0; i < currNumberOfCells; i++) {
             char currCell = readUnsignedCell(i);
@@ -31,7 +31,7 @@ public class UnsignedBigInteger{
 
     private void div2() {
         char oldBitBuffer = 0;
-        char newBitBuffer = 0;
+        char newBitBuffer;
         int currNumberOfCells = unsignedCells.size();
         for (int i = currNumberOfCells-1; i >=0 ; i--) {
             char currCell = readUnsignedCell(i);
@@ -44,12 +44,19 @@ public class UnsignedBigInteger{
     }
 
     public UnsignedBigInteger multiply(UnsignedBigInteger other) {
-        UnsignedBigInteger buffer = new UnsignedBigInteger(this.unsignedCells);
-        UnsignedBigInteger answer = new UnsignedBigInteger(0);
-        for(int i = 0; i < other.unsignedCells.size() * 16; i++) {
-            if (other.getBit(i) == 1)
-                answer = answer.plus(buffer);
-            buffer.mul2();
+        UnsignedBigInteger answer = ZERO;
+        for(int thisRank = 0; thisRank < this.unsignedCells.size(); thisRank++) {
+            for(int otherRank = 0; otherRank < other.unsignedCells.size(); otherRank++) {
+                int newRank = thisRank + otherRank;
+                long res = ((long)other.readUnsignedCell(otherRank)) * ((long)this.readUnsignedCell(thisRank));
+                if (res ==0)
+                    continue;
+                ArrayList<Character> newCells = new ArrayList<>();
+                for(int i = 0; i < newRank; i++) newCells.add((char)0);
+                newCells.add((char)(res % 0x01_00_00));
+                if(res / 0x01_00_00 != 0) newCells.add((char)(res / 0x01_00_00));
+                answer = answer.plus(new UnsignedBigInteger(newCells));
+            }
         }
         return answer;
     }
@@ -88,7 +95,7 @@ public class UnsignedBigInteger{
 
     private void clearEmptyCells() {
         for(int i = unsignedCells.size() - 1 ; i > 0; i--) {
-            if(readUnsignedCell(i) == (char) 0) unsignedCells.removeLast();
+            if(readUnsignedCell(i) == (char) 0) unsignedCells.remove(unsignedCells.size()-1);
             else break;
         }
     }
@@ -97,7 +104,7 @@ public class UnsignedBigInteger{
         int buffer = 0;
         UnsignedBigInteger result = new UnsignedBigInteger(this.unsignedCells);
         if(other.unsignedCells.size() > result.unsignedCells.size())
-            return new UnsignedBigInteger(0);
+            return ZERO;
         for(int i = 0; i < result.unsignedCells.size(); i++) {
             int deduct;
             if(other.unsignedCells.size() > i)
@@ -112,7 +119,7 @@ public class UnsignedBigInteger{
         }
         result.clearEmptyCells();
         if (buffer != 0)
-            return new UnsignedBigInteger(0);
+            return ZERO;
         return result;
     }
 
@@ -131,28 +138,31 @@ public class UnsignedBigInteger{
     }
 
     public UnsignedBigInteger(int value) {
-        unsignedCells = new LinkedList<>();
+        unsignedCells = new ArrayList<>();
         if(value < 0)
-            appendUnsignedCell((char) 0);
+            throw new ArithmeticException("Беззнаковое число не может быть отрицательным.");
         else {
             appendUnsignedCell((char)(value % 0x01_00_00));
             if(value / 0x01_00_00 != 0) appendUnsignedCell((char)(value / 0x01_00_00));
         }
     }
 
-    private UnsignedBigInteger(LinkedList <Character> cells) {
-        unsignedCells = new LinkedList<>(cells);
+    private UnsignedBigInteger(ArrayList <Character> cells) {
+        unsignedCells = new ArrayList<>(cells);
     }
 
     public UnsignedBigInteger(String value) {
+        if(value.charAt(0) == '-')
+            throw new ArithmeticException("Беззнаковое число не может быть отрицательным.");
         UnsignedBigInteger buffer = new UnsignedBigInteger(0);
         UnsignedBigInteger rankBuff = new UnsignedBigInteger(1);
         for(int i = value.length() - 1; i >=0 ; i--) {
-            int number = (int)(value.charAt(i) - '0');
+            int number = value.charAt(i) - '0';
             buffer = buffer.plus(new UnsignedBigInteger(number).multiply(rankBuff));
-            rankBuff = rankBuff.multiply(ten);
+            rankBuff = rankBuff.multiply(TEN);
         }
-        unsignedCells = new LinkedList<>(buffer.unsignedCells);
+        unsignedCells = new ArrayList<>(buffer.unsignedCells);
+        clearEmptyCells();
     }
 
     /**
@@ -175,34 +185,74 @@ public class UnsignedBigInteger{
         else return -1;
     }
 
+    @Override
     public String toString() {
         StringBuilder answer = new StringBuilder();
         UnsignedBigInteger buffer = new UnsignedBigInteger(this.unsignedCells);
         do {
-            answer.append(buffer.getRemainder(ten).toInt());
-            buffer = buffer.divide(ten);
-        } while(!buffer.equals(zero));
+            answer.append(buffer.getRemainder(TEN).toInt());
+            buffer = buffer.divide(TEN);
+        } while(!buffer.equals(ZERO));
         return answer.reverse().toString();
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if(!(obj instanceof UnsignedBigInteger))
+            return false;
+        return obj == this;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = 0;
+        for(Character element: unsignedCells)
+            result+=(int)element;
+        return result;
+    }
+
     public boolean equals(UnsignedBigInteger other) {
-        int result1 = new UnsignedBigInteger(this.unsignedCells)
-                .eternalMinus(new UnsignedBigInteger(other.unsignedCells)).toInt();
-        int result2 = new UnsignedBigInteger(other.unsignedCells)
-                .eternalMinus(new UnsignedBigInteger(this.unsignedCells)).toInt();
-        return result1 == result2 && result1 == 0;
+        if (this.unsignedCells.size() != other.unsignedCells.size())
+            return false;
+        for (int i = this.unsignedCells.size() - 1; i >= 0; i--) {
+            if (other.readUnsignedCell(i) != this.readUnsignedCell(i))
+                return false;
+        }
+        return true;
     }
 
     public boolean isBiggerThan(UnsignedBigInteger other) {
-        return this.eternalMinus(other).toInt() != 0;
+        if (this.unsignedCells.size() > other.unsignedCells.size())
+            return true;
+        if (this.unsignedCells.size() < other.unsignedCells.size())
+            return false;
+        for (int i = this.unsignedCells.size() - 1; i >= 0; i--) {
+            char otherCell = other.readUnsignedCell(i);
+            char thisCell = this.readUnsignedCell(i);
+            if (otherCell == thisCell)
+                continue;
+            return otherCell < thisCell;
+        }
+        return false;
     }
 
-    public boolean isSmallerThan(UnsignedBigInteger other) {
-        return other.eternalMinus(this).toInt() != 0;
+    public boolean isSmallerThan(UnsignedBigInteger other)  {
+        if (this.unsignedCells.size() > other.unsignedCells.size())
+            return false;
+        if (this.unsignedCells.size() < other.unsignedCells.size())
+            return true;
+        for (int i = this.unsignedCells.size() - 1; i >= 0; i--) {
+            char otherCell = other.readUnsignedCell(i);
+            char thisCell = this.readUnsignedCell(i);
+            if (otherCell == thisCell)
+                continue;
+            return otherCell > thisCell;
+        }
+        return false;
     }
 
     private UnsignedBigInteger divideAndGetRemainder(UnsignedBigInteger divisor)  {
-        if(divisor.equals(zero))
+        if(divisor.equals(ZERO))
             throw new ArithmeticException("Деление на ноль.");
         UnsignedBigInteger divBuff = new UnsignedBigInteger(divisor.unsignedCells);
         long counter = -1;
@@ -211,7 +261,7 @@ public class UnsignedBigInteger{
             counter++;
         }
         divBuff.div2();
-        UnsignedBigInteger result = new UnsignedBigInteger(0);
+        UnsignedBigInteger result = ZERO;
         if(counter == -1) {
             return result;
         }

@@ -45,8 +45,10 @@ class UnsignedBigIntegerTest {
             String value2 = getRandom();
             UnsignedBigInteger a = new UnsignedBigInteger(value1);
             UnsignedBigInteger b = new UnsignedBigInteger(value2);
-            assertTrue(a.plus(b).isBiggerThan(a) && a.plus(b).isBiggerThan(b));
-            assertTrue(a.isSmallerThan(a.plus(b)) && b.isSmallerThan(a.plus(b)));
+            assertTrue((a.plus(b).isBiggerThan(a) && a.plus(b).isBiggerThan(b))
+                    || a.equals(UnsignedBigInteger.ZERO) || b.equals(UnsignedBigInteger.ZERO));
+            assertTrue((a.isSmallerThan(a.plus(b)) && a.isSmallerThan(b.plus(a)))
+                    || a.equals(UnsignedBigInteger.ZERO) || b.equals(UnsignedBigInteger.ZERO));
             assertTrue(a.equals(a) && b.equals(b));
         }
     }
@@ -79,7 +81,7 @@ class UnsignedBigIntegerTest {
             BigInteger b = new BigInteger(value2);
             UnsignedBigInteger uA = new UnsignedBigInteger(value1);
             UnsignedBigInteger uB = new UnsignedBigInteger(value2);
-            if(!uB.equals(UnsignedBigInteger.zero)) {
+            if(!uB.equals(UnsignedBigInteger.ZERO)) {
                 assertEquals(a.divide(b).toString(), uA.divide(uB).toString());
                 assertEquals(a.remainder(b).toString(), uA.getRemainder(uB).toString());
             } else try {
@@ -89,6 +91,20 @@ class UnsignedBigIntegerTest {
                 assertNotEquals("", e.getMessage());
             }
 
+        }
+    }
+    @org.junit.jupiter.api.Test
+    void multiply() {
+        for(int i = 0; i < 10; i++) {
+            String value1 = getRandom();
+            String value2 = getRandom();
+            BigInteger a = new BigInteger(value1);
+            BigInteger b = new BigInteger(value2);
+            UnsignedBigInteger uA = new UnsignedBigInteger(value1);
+            UnsignedBigInteger uB = new UnsignedBigInteger(value2);
+            String p1 = (a.multiply(b)).toString();
+            String p2 =  (uA.multiply(uB)).toString();
+            assertEquals(p1, p2);
         }
     }
 }
