@@ -198,57 +198,38 @@ public class UnsignedBigInteger{
 
     @Override
     public boolean equals(Object obj) {
-        if(!(obj instanceof UnsignedBigInteger))
-            return false;
-        return obj == this;
+        return obj instanceof UnsignedBigInteger && ((UnsignedBigInteger) obj).unsignedCells.equals(this.unsignedCells);
     }
 
     @Override
     public int hashCode() {
-        int result = 0;
-        for(Character element: unsignedCells)
-            result+=(int)element;
-        return result;
+        return unsignedCells.hashCode();
     }
 
-    public boolean equals(UnsignedBigInteger other) {
-        if (this.unsignedCells.size() != other.unsignedCells.size())
-            return false;
+    private byte compare(UnsignedBigInteger other) {
+        if (other.unsignedCells.size() < this.unsignedCells.size())
+            return 1;
+        if (other.unsignedCells.size() > this.unsignedCells.size())
+            return -1;
         for (int i = this.unsignedCells.size() - 1; i >= 0; i--) {
-            if (other.readUnsignedCell(i) != this.readUnsignedCell(i))
-                return false;
+            char otherCell = other.readUnsignedCell(i);
+            char thisCell = this.readUnsignedCell(i);
+            if (otherCell < thisCell)
+                return 1;
+            else if (otherCell > thisCell) return -1;
         }
-        return true;
+        return 0;
+    }
+    public boolean equals(UnsignedBigInteger other) {
+        return this.unsignedCells.equals(other.unsignedCells);
     }
 
     public boolean isBiggerThan(UnsignedBigInteger other) {
-        if (this.unsignedCells.size() > other.unsignedCells.size())
-            return true;
-        if (this.unsignedCells.size() < other.unsignedCells.size())
-            return false;
-        for (int i = this.unsignedCells.size() - 1; i >= 0; i--) {
-            char otherCell = other.readUnsignedCell(i);
-            char thisCell = this.readUnsignedCell(i);
-            if (otherCell == thisCell)
-                continue;
-            return otherCell < thisCell;
-        }
-        return false;
+        return compare(other) == 1;
     }
 
     public boolean isSmallerThan(UnsignedBigInteger other)  {
-        if (this.unsignedCells.size() > other.unsignedCells.size())
-            return false;
-        if (this.unsignedCells.size() < other.unsignedCells.size())
-            return true;
-        for (int i = this.unsignedCells.size() - 1; i >= 0; i--) {
-            char otherCell = other.readUnsignedCell(i);
-            char thisCell = this.readUnsignedCell(i);
-            if (otherCell == thisCell)
-                continue;
-            return otherCell > thisCell;
-        }
-        return false;
+        return compare(other) == -1;
     }
 
     private UnsignedBigInteger divideAndGetRemainder(UnsignedBigInteger divisor)  {
